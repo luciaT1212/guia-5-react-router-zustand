@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { useAuthStore } from "../../store/authStore";
+import useAuthStore from "../../store/authStore";
 import { logoutUser } from "../../services/authService";
 
 export default function Navbar() {
@@ -8,6 +8,7 @@ export default function Navbar() {
 
   const handleLogout = async () => {
     const result = await logoutUser();
+
     if (result?.success) {
       clearUser();
       navigate("/login");
@@ -23,6 +24,7 @@ export default function Navbar() {
 
         <div className="flex items-center gap-4">
           <span className="text-gray-700">{user?.email || "Invitado"}</span>
+
           <button onClick={handleLogout} className="btn-secondary">
             Cerrar sesión
           </button>

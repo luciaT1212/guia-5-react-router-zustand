@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { loginUser } from "../../services/authService";
-import { useAuthStore } from "../../store/authStore";
+import useAuthStore from "../../store/authStore";
 import { useNavigate, Link } from "react-router-dom";
 
 export default function Login() {
