@@ -1,22 +1,38 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
+import LoadingSpinner from "../components/common/LoadingSpinner";
 import Layout from "../components/layout/Layout";
-import ProtectedRoute from "./ProtectedRoute";
-
 import Login from "../pages/auth/Login";
 import Register from "../pages/auth/Register";
 import Dashboard from "../pages/dashboard/Dashboard";
 import TaskDetails from "../pages/dashboard/TaskDetails";
-import NotFound from "../pages/NotFound";
+import useAuthStore from "../store/authStore";
+import ProtectedRoute from "./ProtectedRoute";
 
 export default function AppRouter() {
+  const user = useAuthStore((state) => state.user);
+  const checkingAuth = useAuthStore((state) => state.checkingAuth);
+
+  if (checkingAuth) {
+    return <LoadingSpinner />;
+  }
+
   return (
     <Routes>
-      {/* Public */}
-      <Route path="/" element={<Navigate to="/login" replace />} />
-      <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route
+        path="/"
+        element={<Navigate to={user ? "/dashboard" : "/login"} replace />}
+      />
 
-      {/* Protected */}
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
+      />
+
+      <Route
+        path="/register"
+        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
+      />
+
       <Route element={<ProtectedRoute />}>
         <Route element={<Layout />}>
           <Route path="/dashboard" element={<Dashboard />} />
@@ -24,8 +40,7 @@ export default function AppRouter() {
         </Route>
       </Route>
 
-      {/* 404 */}
-      <Route path="*" element={<NotFound />} />
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>
   );
 }

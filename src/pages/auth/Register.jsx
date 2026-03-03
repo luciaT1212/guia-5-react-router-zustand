@@ -1,96 +1,140 @@
 import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate, Link, Navigate } from "react-router-dom";
+import { useForm } from "react-hook-form";
+import { registerUser } from "../../services/authService";
 import useAuthStore from "../../store/authStore";
 
 export default function Register() {
   const navigate = useNavigate();
-  const register = useAuthStore((s) => s.register);
-
-  const [form, setForm] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
-
-  const [error, setError] = useState(null);
+  const user = useAuthStore((state) => state.user);
+  const setUser = useAuthStore((state) => state.setUser);
+  const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const onChange = (e) => {
-    setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
+  const {
+    register,
+    handleSubmit,
+    watch,
+    formState: { errors },
+  } = useForm({ defaultValues: { name: "", email: "", password: "", confirmPassword: "" } });
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
+  const passwordValue = watch("password", "");
 
-    if (!form.name.trim()) return setError("Escribe tu nombre.");
-    if (!form.email.trim()) return setError("Escribe tu email.");
-    if (form.password.length < 6)
-      return setError("La contraseña debe tener al menos 6 caracteres.");
-    if (form.password !== form.confirmPassword)
-      return setError("Las contraseñas no coinciden.");
+  if (user) return <Navigate to="/dashboard" replace />;
 
-    try {
-      setLoading(true);
-      await register({
-        name: form.name.trim(),
-        email: form.email.trim(),
-        password: form.password,
-      });
+  const onSubmit = async (data) => {
+    setLoading(true);
+    setError("");
+
+    const result = await registerUser(data.email.trim(), data.password, data.name.trim());
+
+    if (result.success) {
+      setUser(result.user);
       navigate("/dashboard");
-    } catch (err) {
-      setError(err?.message ?? "Error al crear cuenta.");
-    } finally {
-      setLoading(false);
+    } else {
+      setError(result.error);
     }
+
+    setLoading(false);
   };
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Register</h1>
+    <div className="min-h-screen grid place-items-center px-4 py-10">
+      <div className="card w-full max-w-md">
+        <div className="mb-6">
+          <div className="surface-chip mb-3">Nuevo acceso</div>
+          <h1 className="section-title text-3xl font-bold">Crea tu cuenta</h1>
+          <p className="subtle-text mt-2">
+            Organiza tareas, prioridades y fechas limite desde un solo lugar.
+          </p>
+        </div>
 
-      {error && <p style={{ color: "crimson" }}>{error}</p>}
+        {error && (
+          <div className="mb-5 rounded-2xl border border-red-200/70 bg-red-50/70 p-4 text-red-700">
+            {error}
+          </div>
+        )}
 
-      <form onSubmit={onSubmit} style={{ display: "grid", gap: 12, maxWidth: 320 }}>
-        <label>
-          Nombre
-          <input name="name" value={form.name} onChange={onChange} />
-        </label>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Nombre</label>
+            <input
+              type="text"
+              className="input-field"
+              placeholder="Tu nombre completo"
+              {...register("name", {
+                required: "El nombre es obligatorio",
+                minLength: { value: 3, message: "Minimo 3 caracteres" },
+              })}
+            />
+            {errors.name && <p className="error-message">{errors.name.message}</p>}
+          </div>
 
-        <label>
-          Email
-          <input name="email" type="email" value={form.email} onChange={onChange} />
-        </label>
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Correo electronico</label>
+            <input
+              type="email"
+              className="input-field"
+              placeholder="tu@email.com"
+              {...register("email", {
+                required: "El correo es obligatorio",
+                pattern: {
+                  value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                  message: "Correo invalido",
+                },
+              })}
+            />
+            {errors.email && <p className="error-message">{errors.email.message}</p>}
+          </div>
 
-        <label>
-          Password
-          <input
-            name="password"
-            type="password"
-            value={form.password}
-            onChange={onChange}
-          />
-        </label>
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Contrasena</label>
+            <input
+              type="password"
+              className="input-field"
+              placeholder="********"
+              {...register("password", {
+                required: "La contrasena es obligatoria",
+                minLength: { value: 6, message: "Minimo 6 caracteres" },
+              })}
+            />
+            {errors.password && <p className="error-message">{errors.password.message}</p>}
+          </div>
 
-        <label>
-          Confirm Password
-          <input
-            name="confirmPassword"
-            type="password"
-            value={form.confirmPassword}
-            onChange={onChange}
-          />
-        </label>
+          <div>
+            <label className="mb-2 block text-sm font-semibold">Confirmar contrasena</label>
+            <input
+              type="password"
+              className="input-field"
+              placeholder="********"
+              {...register("confirmPassword", {
+                required: "Debes confirmar la contrasena",
+                validate: (value) => value === passwordValue || "Las contrasenas no coinciden",
+              })}
+            />
+            {errors.confirmPassword && (
+              <p className="error-message">{errors.confirmPassword.message}</p>
+            )}
+          </div>
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Creando..." : "Crear cuenta"}
-        </button>
-      </form>
+          <button
+            type="submit"
+            disabled={loading}
+            className="btn-primary w-full disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {loading ? "Creando cuenta..." : "Crear cuenta"}
+          </button>
+        </form>
 
-      <p style={{ marginTop: 12 }}>
-        ¿Ya tienes cuenta? <Link to="/login">Inicia sesión</Link>
-      </p>
+        <div className="mt-6 border-t border-[var(--border)] pt-5">
+          <p className="subtle-text text-center text-sm">
+            Ya tienes cuenta?{" "}
+            <Link className="font-semibold text-[var(--primary)]" to="/login">
+              Inicia sesion
+            </Link>
+          </p>
+        </div>
+      </div>
     </div>
   );
 }
